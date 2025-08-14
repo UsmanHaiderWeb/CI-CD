@@ -1,0 +1,48 @@
+name: Deploy Full Stack to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      # Build and Push Frontend
+      - name: Build and Push Frontend
+        run: |
+          IMAGE_NAME=usmanhaider12/ci-cd-frontend
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./frontend
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${GITHUB_SHA}
+
+      # Build and Push Backend
+      - name: Build and Push Backend
+        run: |
+          IMAGE_NAME=usmanhaider12/ci-cd-backend
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./backend
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${GITHUB_SHA}
+
+      # Deploy on EC2
+      - name: Deploy on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/app
+            docker-compose pull
+            docker-compose up -d

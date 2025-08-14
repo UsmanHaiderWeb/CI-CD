@@ -1,0 +1,17 @@
+{
+  "name": "ci-cd-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Movies application",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "npx nodemon index.js"
+  },
+  "author": "Usman Haider",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
+  }
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Passkey Demo (LocalStorage)</title>
+  </head>
+  <body>
+    <h1>Passkey Demo (WebAuthn + localStorage)</h1>
+
+    <button id="registerBtn">Register Passkey</button>
+    <button id="loginBtn">Login with Passkey</button>
+
+    <p id="status"></p>
+
+    <script>
+      const dbKey = "passkey-demo-publicKey";
+
+      async function registerPasskey() {
+        const publicKeyOptions = {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rp: { name: "Passkey Demo", id: "localhost" }, // ✅ important
+          user: {
+            id: Uint8Array.from("user-id-123", (c) => c.charCodeAt(0)),
+            name: "user@example.com",
+            displayName: "Example User",
+          },
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 }, // ES256
+            { type: "public-key", alg: -257 }, // RS256
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            residentKey: "preferred",
+            userVerification: "preferred",
+          },
+          timeout: 60000,
+          attestation: "none",
+        };
+
+        const credential = await navigator.credentials.create({
+          publicKey: publicKeyOptions,
+          pubKeyCredParams: [
+            { type: "public-key", alg: -7 }, // ES256
+            { type: "public-key", alg: -257 }, // RS256
+          ],
+        });
+
+        // Store the public key credential in "fake DB"
+        const publicKeyData = {
+          id: credential.id,
+          rawId: arrayBufferToBase64(credential.rawId),
+          type: credential.type,
+          response: {
+            clientDataJSON: arrayBufferToBase64(
+              credential.response.clientDataJSON
+            ),
+            attestationObject: arrayBufferToBase64(
+              credential.response.attestationObject
+            ),
+          },
+        };
+
+        localStorage.setItem(dbKey, JSON.stringify(publicKeyData));
+        document.getElementById("status").textContent = "Passkey registered!";
+      }
+
+      async function loginWithPasskey() {
+        const stored = localStorage.getItem(dbKey);
+        if (!stored) {
+          alert("No passkey registered!");
+          return;
+        }
+        const storedKey = JSON.parse(stored);
+
+        const publicKeyRequestOptions = {
+          challenge: crypto.getRandomValues(new Uint8Array(32)), // Fake server challenge
+          allowCredentials: [
+            {
+              id: base64ToArrayBuffer(storedKey.rawId),
+              type: "public-key",
+            },
+          ],
+          userVerification: "preferred",
+          timeout: 60000,
+        };
+
+        const assertion = await navigator.credentials.get({
+          publicKey: publicKeyRequestOptions,
+        });
+
+        // Normally, this assertion would be sent to the server for verification with the stored public key
+        document.getElementById(
+          "status"
+        ).textContent = `Passkey login successful! Credential ID: ${assertion.id}`;
+      }
+
+      function arrayBufferToBase64(buffer) {
+        return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      }
+
+      function base64ToArrayBuffer(base64) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      document
+        .getElementById("registerBtn")
+        .addEventListener("click", registerPasskey);
+      document
+        .getElementById("loginBtn")
+        .addEventListener("click", loginWithPasskey);
+    </script>
+  </body>
+</html>

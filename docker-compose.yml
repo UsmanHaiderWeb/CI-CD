@@ -1,0 +1,26 @@
+version: "1"
+
+services:
+  frontend_with_nginx:
+    image: "usmanhaider12/ci-cd-frontend:v1"
+    container_name: "frontend_with_nginx"
+    ports:
+      - 80:80
+    depends_on:
+      - backend
+    networks:
+      - docker-hub
+
+  backend:
+    image: "usmanhaider12/ci-cd-backend:v1"
+    container_name: "backend"
+    environment:
+      - PORT=5000
+    expose:
+      - 5000
+    networks:
+      - docker-hub
+
+networks:
+  docker-hub:
+    driver: bridge

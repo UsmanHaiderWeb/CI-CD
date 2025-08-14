@@ -2,7 +2,7 @@ version: "1"
 
 services:
   frontend_with_nginx:
-    image: "usmanhaider12/ci-cd-frontend:v1"
+    image: "usmanhaider12/ci-cd-frontend:latest"
     container_name: "frontend_with_nginx"
     ports:
       - 80:80
@@ -12,7 +12,7 @@ services:
       - docker-hub
 
   backend:
-    image: "usmanhaider12/ci-cd-backend:v1"
+    image: "usmanhaider12/ci-cd-backend:latest"
     container_name: "backend"
     environment:
       - PORT=5000

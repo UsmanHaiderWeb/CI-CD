@@ -23,7 +23,7 @@ jobs:
       - name: Build and Push Frontend
         run: |
           IMAGE_NAME=usmanhaider12/ci-cd-frontend
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./frontend
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./CI-CD-Frontend
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${GITHUB_SHA}
 
@@ -31,7 +31,7 @@ jobs:
       - name: Build and Push Backend
         run: |
           IMAGE_NAME=usmanhaider12/ci-cd-backend
-          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./backend
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${GITHUB_SHA} ./CI-CD-Backend
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${GITHUB_SHA}
 

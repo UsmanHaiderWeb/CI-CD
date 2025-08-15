@@ -72,23 +72,6 @@ pipeline {
       }
     }
 
-    stage('Build & Push Backend') {
-      steps {
-        withCredentials([usernamePassword(
-          credentialsId: 'docker-hub-creds',
-          usernameVariable: 'DOCKER_HUB_USERNAME',
-          passwordVariable: 'DOCKER_HUB_PASSWORD'
-        )]) {
-          sh '''
-            IMAGE_NAME=${DOCKER_HUB_USERNAME}/ci-cd-backend
-            docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${SHA7} ./CI-CD-Backend
-            docker push $IMAGE_NAME:latest
-            docker push $IMAGE_NAME:${SHA7}
-          '''
-        }
-      }
-    }
-
     stage('Deploy to EC2') {
       steps {
         sshagent(credentials: ['ec2-ssh-key']) {

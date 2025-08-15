@@ -15,7 +15,7 @@ pipeline {
 
   environment {
     // change this to your EC2 IP or DNS
-    EC2_HOST = '16.171.254.46'
+    EC2_HOST = '13.60.187.26'
   }
 
   stages {

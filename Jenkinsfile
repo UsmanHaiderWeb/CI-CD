@@ -15,7 +15,7 @@ pipeline {
 
   environment {
     // change this to your EC2 IP or DNS
-    EC2_HOST = '16.171.134.249'
+    EC2_HOST = '13.60.174.95'
   }
 
   stages {
@@ -85,9 +85,28 @@ pipeline {
             ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
               set -e
               cd ~/app
+              
+              echo '=== Pulling latest images ==='
               docker-compose pull
+              
+              echo '=== Restarting containers ==='
               docker-compose up -d
+              
+              echo '=== Cleaning up - keeping only latest tags ==='
+              # Remove all frontend images except 'latest'
+              docker images usmanhaider12/ci-cd-frontend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | xargs -r docker rmi || true
+              
+              # Remove all backend images except 'latest' 
+              docker images usmanhaider12/ci-cd-backend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | xargs -r docker rmi || true
+              
+              # General cleanup of dangling images and build cache
               docker system prune -f
+              
+              echo '=== Remaining images ==='
+              docker images | grep usmanhaider12
+              
+              echo '=== Running containers ==='
+              docker-compose ps
             "
           '''
         }

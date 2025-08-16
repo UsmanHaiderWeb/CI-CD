@@ -15,13 +15,19 @@ pipeline {
 
   environment {
     // change this to your EC2 IP or DNS
-    EC2_HOST = '13.60.225.202'
+    EC2_HOST = '16.171.134.249'
   }
 
   stages {
+    stage('Clean Workspace') {
+      steps {
+        cleanWs()
+      }
+    }
+
     stage('Checkout (SCM)') {
       steps {
-        // Use the job’s SCM config (Pipeline script from SCM).
+        // Use the job's SCM config (Pipeline script from SCM).
         // This avoids the second, failing git step you saw.
         checkout([
           $class: 'GitSCM',

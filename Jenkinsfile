@@ -7,15 +7,12 @@ pipeline {
     disableConcurrentBuilds()
   }
 
-  // If you also ticked "GitHub hook trigger for GITScm polling" in the job,
-  // this makes webhook → build seamless.
   triggers {
     githubPush()
   }
 
   environment {
-    // change this to your EC2 IP or DNS
-    EC2_HOST = '51.20.53.191'
+    EC2_HOST = '16.171.129.6'
   }
 
   stages {
@@ -27,8 +24,6 @@ pipeline {
 
     stage('Checkout (SCM)') {
       steps {
-        // Use the job's SCM config (Pipeline script from SCM).
-        // This avoids the second, failing git step you saw.
         checkout([
           $class: 'GitSCM',
           branches: [[name: '*/main']],
@@ -38,7 +33,6 @@ pipeline {
           ]]
         ])
 
-        // Export a short SHA for tagging images
         script {
           env.GIT_SHA  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
           env.SHA7     = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
@@ -92,18 +86,49 @@ pipeline {
               echo '=== Restarting containers ==='
               docker-compose up -d
               
-              echo '=== Cleaning up - keeping only latest tags ==='
-              # Remove all frontend images except 'latest'
-              docker images usmanhaider12/ci-cd-frontend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | xargs -r docker rmi || true
+              echo '=== Advanced cleanup - removing old tagged images properly ==='
               
-              # Remove all backend images except 'latest' 
-              docker images usmanhaider12/ci-cd-backend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | xargs -r docker rmi || true
+              # Method 1: Remove tags first, then images
+              # Get all frontend image tags except 'latest', remove the tags
+              docker images usmanhaider12/ci-cd-frontend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | while read image_tag; do
+                echo \"Removing tag: \$image_tag\"
+                docker rmi \"\$image_tag\" 2>/dev/null || echo \"Tag \$image_tag already removed or in use\"
+              done
               
-              # General cleanup of dangling images and build cache
+              # Get all backend image tags except 'latest', remove the tags  
+              docker images usmanhaider12/ci-cd-backend --format '{{.Repository}}:{{.Tag}}' | grep -v ':latest$' | while read image_tag; do
+                echo \"Removing tag: \$image_tag\"
+                docker rmi \"\$image_tag\" 2>/dev/null || echo \"Tag \$image_tag already removed or in use\"
+              done
+              
+              # Method 2: Alternative - Force remove dangling images (images with <none> tag)
+              DANGLING_IMAGES=\$(docker images -f 'dangling=true' -q)
+              if [ ! -z \"\$DANGLING_IMAGES\" ]; then
+                echo \"Removing dangling images: \$DANGLING_IMAGES\"
+                docker rmi \$DANGLING_IMAGES || true
+              else
+                echo \"No dangling images to remove\"
+              fi
+              
+              # Method 3: Remove images by age (keep only latest + images from last 24 hours)
+              # This is more advanced - uncomment if you want to use it
+              # echo '=== Removing old images (older than 24 hours, except latest) ==='
+              # docker images usmanhaider12/ci-cd-frontend --format '{{.ID}} {{.Repository}}:{{.Tag}} {{.CreatedAt}}' | grep -v ':latest' | while read image_id image_tag created_at; do
+              #   CREATED_TIMESTAMP=\$(date -d \"\$created_at\" +%s)
+              #   CURRENT_TIMESTAMP=\$(date +%s)
+              #   AGE_HOURS=\$(( (CURRENT_TIMESTAMP - CREATED_TIMESTAMP) / 3600 ))
+              #   if [ \$AGE_HOURS -gt 24 ]; then
+              #     echo \"Removing old image (age: \${AGE_HOURS}h): \$image_tag\"
+              #     docker rmi \"\$image_tag\" 2>/dev/null || true
+              #   fi
+              # done
+              
+              # General system cleanup
+              echo '=== General cleanup ==='
               docker system prune -f
               
-              echo '=== Remaining images ==='
-              docker images | grep usmanhaider12
+              echo '=== Final state - Remaining images ==='
+              docker images | grep usmanhaider12 || echo 'No usmanhaider12 images found'
               
               echo '=== Running containers ==='
               docker-compose ps
@@ -116,14 +141,14 @@ pipeline {
 
   post {
     always {
-      // optional: keep disk tidy on the Jenkins node
       sh 'docker logout || true'
     }
     success {
-      echo "Deployed images tagged: latest and ${env.SHA7}"
+      echo "✅ Successfully deployed images tagged: latest and ${env.SHA7}"
+      echo "🧹 Cleanup completed - only 'latest' tags should remain"
     }
     failure {
-      echo "Build failed. Check the stage that errored above."
+      echo "❌ Build failed. Check the stage that errored above."
     }
   }
 }

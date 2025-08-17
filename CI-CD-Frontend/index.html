@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 Usman Jenkins 20</title>
+    <title>🎬 Usman Jenkins 21</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -249,7 +249,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 Usman Jenkins 20</h1>
+            <h1>🎬 Usman Jenkins 21</h1>
             <p>Discover amazing films from around the world</p>
         </div>
 
@@ -287,3 +287,102 @@
     <script src="index.js"></script>
 </body>
 </html>
+
+
+<!-- 
+pipeline {
+  agent any
+
+  options {
+    ansiColor('xterm')
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  triggers {
+    githubPush()
+  }
+
+  stages {
+    stage('Clean Workspace') {
+      steps {
+        cleanWs()
+      }
+    }
+
+    stage('Checkout (SCM)') {
+      steps {
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: '*/main']],
+          userRemoteConfigs: [[
+            url: 'https://github.com/UsmanHaiderWeb/CI-CD.git',
+            credentialsId: 'github-creds'
+          ]]
+        ])
+
+        script {
+          env.GIT_SHA  = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+          env.SHA7     = sh(returnStdout: true, script: 'git rev-parse --short=7 HEAD').trim()
+          echo "Checked out commit ${env.GIT_SHA} (${env.SHA7})"
+        }
+      }
+    }
+
+    stage('Docker Login') {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'docker-hub-creds',
+          usernameVariable: 'DOCKER_HUB_USERNAME',
+          passwordVariable: 'DOCKER_HUB_PASSWORD'
+        )]) {
+          sh '''
+            echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USERNAME" --password-stdin
+          '''
+        }
+      }
+    }
+
+    stage('Build & Push Frontend') {
+      steps {
+        withCredentials([usernamePassword(
+          credentialsId: 'docker-hub-creds',
+          usernameVariable: 'DOCKER_HUB_USERNAME',
+          passwordVariable: 'DOCKER_HUB_PASSWORD'
+        )]) {
+          sh '''
+            IMAGE_NAME=${DOCKER_HUB_USERNAME}/ci-cd-frontend
+            docker build -t $IMAGE_NAME:latest ./CI-CD-Frontend
+            docker push $IMAGE_NAME:latest
+          '''
+        }
+      }
+    }
+
+    stage('Deploy to EC2') {
+      steps {
+        sshagent(credentials: ['ec2-ssh-key']) {
+          sh '''
+              cd /app
+              docker-compose pull
+              docker-compose up -d
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      sh 'docker logout || true'
+    }
+    success {
+      echo "✅ Successfully deployed commit ${env.SHA7} as latest"
+      echo "💡 To rollback: redeliver webhook for previous commit"
+    }
+    failure {
+      echo "❌ Build failed. Check the stage that errored above."
+    }
+  }
+}
+-->

@@ -12,7 +12,7 @@ pipeline {
   }
 
   environment {
-    EC2_HOST = '13.53.205.206'
+    EC2_HOST = '13.49.35.43'
   }
 
   stages {
@@ -76,20 +76,8 @@ pipeline {
         sshagent(credentials: ['ec2-ssh-key']) {
           sh '''
             ssh -o StrictHostKeyChecking=no ubuntu@$EC2_HOST "
-              set -e
-              cd ~/app
-              
-              echo '=== Pulling latest images ==='
-              docker-compose pull
-              
-              echo '=== Restarting containers ==='
-              docker-compose up -d
-              
-              echo '=== Simple cleanup - removing dangling images ==='
-              docker image prune -f
-              
-              echo '=== Running containers ==='
-              docker-compose ps
+              nohup ~/app/deploy.sh > ~/app/deploy.log 2>&1 &
+              echo 'Deployment triggered in background. Check ~/app/deploy.log on EC2.'
             "
           '''
         }
